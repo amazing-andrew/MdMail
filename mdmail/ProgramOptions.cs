@@ -51,7 +51,7 @@ namespace EmailTemplate
 
             this.ProgramName = "Email Template";
             this.ProgramVersion = "v" + System.Diagnostics.FileVersionInfo.GetVersionInfo(assemblyLocation).FileVersion;
-            this.ProgramDescription = "Loads and displays an email template into outlook. Uses an markdown markup and data passed into handlebars.js to fill out the template. You can also supply a stylesheet to apply to the email.\r\n\r\nNOTE: You can set the subject from within the template by having the first line start with \"Subject:\"";
+            this.ProgramDescription = "Loads and displays an email template into outlook. Uses an markdown markup and data passed into handlebars.js to fill out the template. You can also supply a stylesheet to apply to the email.\r\n\r\nNOTE: You can set the \"To\", \"CC\", \"BCC\", and \"Subject\" fields from within the template by having first few lines start with \"To:\", \"CC:\", \"BCC:\", and/or \"Subject:\"";
             this.Example = "{0} \"markdown.md\" [list of properties]\r\n\r\nlist of properties: key=value (i.e. user.name=andrew)".Fmt(processName);
 
 

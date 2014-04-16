@@ -39,40 +39,93 @@ namespace EmailTemplate
             }
 
 
-            //GET TEMPLATE TEXT
-            string templateSource = File.ReadAllText(options.FilePath);
+            Models.Mail mail = new Models.Mail();
+            mail.To = options.To;
+            mail.CC = options.CC;
+            mail.BCC = options.BCC;
+            mail.Subject = options.Subject;
 
-            //GET HANDLEBARS TEMPLATE
-            HandlebarsEngine handlebars = new HandlebarsEngine();
-            var bodyTemplate = handlebars.Compile(templateSource);
-            var body = bodyTemplate(options.data);
 
-            //DETECT SUBJECT
-            string subject = options.Subject;
-            if (subject == null)
-            {
-                DetectSubject(ref body, ref subject);
-            }
+            //Applies the handlebars templating
+            ApplyTemplate(options.FilePath, options.data, mail);
+
 
             //CONVERT TEMPLATE TEXT FROM MARKDOWN TO HTML
-            body = Markdown(body);
+            mail.Body = Markdown(mail.Body);
+
+            //Apply pre-mail styles to the html body
+            ApplyPreMailStyles(options.Style, mail);
+
+            DisplayInOutlook(mail);
+        }
+
+        private static void ApplyPreMailStyles(string stylesheetFilePath, Models.Mail mail)
+        {
+            if (stylesheetFilePath == null || !File.Exists(stylesheetFilePath))
+                return;
 
 
-            if (options.Style != null)
+            string cssText = File.ReadAllText(stylesheetFilePath);
+            string css = "<style type=\"text/css\">{0}</style>\r\n".Fmt(cssText);
+            mail.Body = css + mail.Body;
+
+            var result = PreMailer.Net.PreMailer.MoveCssInline(mail.Body);
+            mail.Body = result.Html;
+        }
+
+        private static void ApplyTemplate(string templateFilePath, object templateData, Models.Mail mail)
+        {
+            //GET TEMPLATE TEXT
+            // -----------------------------------------------------
+            string templateSource = File.ReadAllText(templateFilePath);
+
+            //GET HANDLEBARS TEMPLATE
+            // -----------------------------------------------------
+            HandlebarsEngine handlebars = new HandlebarsEngine();
+            var bodyTemplate = handlebars.Compile(templateSource);
+            mail.Body = bodyTemplate(templateData);
+
+
+            //DETECT SUBJECT, TO, CC, BCC fields from template
+            // -----------------------------------------------------
+            Regex detection = new Regex(
+                  "^\r\n(\r\nSubject:(?<SUBJECT>.*?)\\n\r\n|\r\nTo:(?<TO>.*?)\\n\r\n|\r\nCC"+
+                  ":(?<CC>.*?)\\n\r\n|\r\nBCC:(?<BCC>.*?)\\n\r\n)*",
+                RegexOptions.IgnoreCase
+                | RegexOptions.CultureInvariant
+                | RegexOptions.IgnorePatternWhitespace
+                );
+
+
+            if (mail.Body != null)
             {
-                if (File.Exists(options.Style))
+                //normalize newlines
+                mail.Body = mail.Body.Replace("\r\n", "\n");
+
+                //run detection
+                var match = detection.Match(mail.Body);
+
+                if (match.Success)
                 {
-                    
-                        string cssText = File.ReadAllText(options.Style);
-                        string css = "<style type=\"text/css\">{0}</style>\r\n".Fmt(cssText);
-                        body = css + body;
-                        var result = PreMailer.Net.PreMailer.MoveCssInline(body);
-                        body = result.Html;
+                    if (mail.To == null && match.Groups["TO"] != null)
+                        mail.To = match.Groups["TO"].Value.NullSafeTrim().ToNullIfWhiteSpace();
+
+                    if (mail.CC == null && match.Groups["CC"] != null)
+                        mail.CC = match.Groups["CC"].Value.NullSafeTrim().ToNullIfWhiteSpace();
+
+                    if (mail.BCC == null && match.Groups["BCC"] != null)
+                        mail.BCC = match.Groups["BCC"].Value.NullSafeTrim().ToNullIfWhiteSpace();
+
+                    if (mail.Subject == null && match.Groups["SUBJECT"] != null)
+                        mail.Subject = match.Groups["SUBJECT"].Value.NullSafeTrim().ToNullIfWhiteSpace();
+
+                    //remove matches from original body
+                    mail.Body = detection.Replace(mail.Body, "");
                 }
+
+                //re-introduce \r\n from \n
+                mail.Body = mail.Body.Replace("\n", "\r\n");                
             }
-
-
-            LoadEmail(options.To, options.CC, options.BCC, subject, body);
         }
 
         private static string Markdown(string body)
@@ -96,28 +149,28 @@ namespace EmailTemplate
             }
         }
 
-        private static void LoadEmail(string to, string cc, string bcc, string subject, string body)
+        private static void DisplayInOutlook(Models.Mail m)
         {
             NetOffice.OutlookApi.Application outlook = new NetOffice.OutlookApi.Application();
 
-            var mail = outlook.CreateItem(NetOffice.OutlookApi.Enums.OlItemType.olMailItem) as NetOffice.OutlookApi.MailItem;
+            var outlookMailItem = outlook.CreateItem(NetOffice.OutlookApi.Enums.OlItemType.olMailItem) as NetOffice.OutlookApi.MailItem;
 
-            if (to != null)
-                mail.To = to;
+            if (m.To != null)
+                outlookMailItem.To = m.To;
 
-            if (cc != null)
-                mail.CC = cc;
+            if (m.CC != null)
+                outlookMailItem.CC = m.CC;
 
-            if (bcc != null)
-                mail.BCC = bcc;
+            if (m.BCC != null)
+                outlookMailItem.BCC = m.BCC;
 
-            if (subject != null)
-                mail.Subject = subject;
+            if (m.Subject != null)
+                outlookMailItem.Subject = m.Subject;
 
-            if (body != null)
-                mail.HTMLBody = body;
+            if (m.Body != null)
+                outlookMailItem.HTMLBody = m.Body;
 
-            mail.Display(false);
+            outlookMailItem.Display(false);
         }
 
         static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)

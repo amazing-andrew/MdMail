@@ -83,6 +83,7 @@
   <ItemGroup>
     <Compile Include="ConsoleHelper.cs" />
     <Compile Include="HandlebarsEngine.cs" />
+    <Compile Include="Models\Mail.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ProgramOptions.cs" />
@@ -92,7 +93,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="StringUtil.cs" />
+    <Compile Include="Util\StringUtil.cs" />
     <Compile Include="Wrapping\TextWrapper.cs" />
     <Compile Include="Wrapping\WordReader.cs" />
   </ItemGroup>
