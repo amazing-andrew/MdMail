@@ -130,6 +130,8 @@ namespace EmailTemplate
 
         private static string Markdown(string body)
         {
+            
+
             MarkdownSharp.MarkdownOptions mdoptions = new MarkdownSharp.MarkdownOptions();
             mdoptions.AutoHyperlink = true;
             MarkdownSharp.Markdown md = new MarkdownSharp.Markdown(mdoptions);
@@ -153,6 +155,8 @@ namespace EmailTemplate
         {
             NetOffice.OutlookApi.Application outlook = new NetOffice.OutlookApi.Application();
 
+            
+
             var outlookMailItem = outlook.CreateItem(NetOffice.OutlookApi.Enums.OlItemType.olMailItem) as NetOffice.OutlookApi.MailItem;
 
             if (m.To != null)
@@ -167,10 +171,10 @@ namespace EmailTemplate
             if (m.Subject != null)
                 outlookMailItem.Subject = m.Subject;
 
-            if (m.Body != null)
-                outlookMailItem.HTMLBody = m.Body;
+            outlookMailItem.Display(false); //display first b4 we set the body to obtain the default signature
 
-            outlookMailItem.Display(false);
+            if (m.Body != null)
+                outlookMailItem.HTMLBody = m.Body + outlookMailItem.HTMLBody;
         }
 
         static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)

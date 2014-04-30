@@ -189,10 +189,6 @@ namespace EmailTemplate
                 sb.AppendLine();
             }
 
-
-            //sb.AppendLine("::options::");
-            //sb.AppendLine();
-
             options.WriteOptionDescriptions(writer);
             sb.AppendLine();
 
