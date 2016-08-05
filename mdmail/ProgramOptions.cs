@@ -58,31 +58,13 @@ namespace EmailTemplate
             //set defaults
             this.Style = "markdown.css";
 
-
             options = new OptionSet()
                 .Add("sub|subject=", "sets the subject of the email", x => Subject = x)
                 .Add("t|to=", "sets the to of the email", x => To = x)
                 .Add("cc=", "sets the to of the email", x => CC = x)
                 .Add("bcc=", "sets the from of the email", x => BCC = x)
                 .Add("css|style=", "sets the file that contains the css style sheet for the template defaults to (markdown.css)", x => Style = x)
-                .Add("?|help", "displays this help message", x => ShouldShowHelp = true)
-                .Add("<>", v =>
-                {
-                    char[] kvSplitChars = new char[] { '=', ':' };
-                    bool isKeyValue = v.IndexOfAny(kvSplitChars) > -1;
-
-                    if (isKeyValue)
-                    {
-                        var key = v.Substring(0, v.IndexOfAny(kvSplitChars));
-                        var value = v.Remove(0, key.Length + 1);
-                        SetData(key, value);
-                    }
-
-                    else if (FilePath == null)
-                    {
-                        FilePath = v;
-                    }
-                });
+                .Add("?|help", "displays this help message", x => ShouldShowHelp = true);
 	    }
 
         private void SetData(string key, string value)
@@ -120,14 +102,41 @@ namespace EmailTemplate
             }
             
             UnusedArgs = options.Parse(args);
+
+            //fill out file path first 
             if (UnusedArgs.Count > 0)
             {
                 this.FilePath = UnusedArgs[0];
                 UnusedArgs.RemoveAt(0);
             }
 
-            
+            string tempKey = null;
+            while (UnusedArgs.Count > 0) {
+                var unused = UnusedArgs[0];
+                char[] kvSplitChars = new char[] { '=', ':' };
+                bool isKeyValue = unused.IndexOfAny(kvSplitChars) > -1;
 
+                if (isKeyValue) {
+                    var key = unused.Substring(0, unused.IndexOfAny(kvSplitChars));
+                    var value = unused.Remove(0, key.Length + 1);
+                    SetData(key, value);
+                }
+                else {
+                    if (tempKey == null) {
+                        tempKey = unused;
+                    }
+                    else {
+                        string tempValue = unused;
+                        SetData(tempKey, tempValue);
+
+                        tempKey = null;
+                        tempValue = null;
+                    }
+                }
+
+                UnusedArgs.RemoveAt(0);
+            }
+           
             //validate
             this.Validate();
 
